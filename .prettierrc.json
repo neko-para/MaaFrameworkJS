@@ -4,7 +4,7 @@
   "arrowParens": "avoid",
   "trailingComma": "none",
 
-  "importOrder": [],
+  "importOrder": ["^\\."],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true,
 
