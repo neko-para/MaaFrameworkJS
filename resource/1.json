@@ -1,0 +1,8 @@
+{
+  "Awake": {
+    "recognition": "TemplateMatch",
+    "roi": [546, 595, 186, 125],
+    "template": "awake.png",
+    "action": "Click"
+  }
+}

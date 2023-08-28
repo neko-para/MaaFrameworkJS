@@ -1,14 +1,8 @@
+import { decodeRaw, fromPng, toPng, waitInited } from '@maa/opencv'
 import cv from '@techstark/opencv-js'
 import { readFileSync, writeFileSync } from 'fs'
 
-import {
-  AdbController,
-  call_command,
-  call_command_socket,
-  decodeRaw,
-  fromPng,
-  toPng
-} from '..'
+import { AdbController, call_command, call_command_socket } from '..'
 
 // call_command_socket('E:/Programs/MAA/adb/platform-tools/adb.exe', port => {
 //   return ['exec-out', `screencap | nc -w 3 10.0.2.2 ${port}`]
@@ -27,11 +21,7 @@ import {
 // })
 
 async function main() {
-  await new Promise<void>(resolve => {
-    cv.onRuntimeInitialized = () => {
-      resolve()
-    }
-  })
+  await waitInited()
 
   const adb = new AdbController(
     '/usr/local/bin/adb',

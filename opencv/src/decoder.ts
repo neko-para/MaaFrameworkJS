@@ -16,6 +16,6 @@ export function decodeRaw(buffer: Buffer) {
   if (mat.empty()) {
     return null
   }
-  cv.cvtColor(mat, mat, cv.COLOR_RGBA2RGB)
+  // cv.cvtColor(mat, mat, cv.COLOR_RGBA2RGB)
   return mat
 }

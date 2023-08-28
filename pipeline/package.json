@@ -1,0 +1,10 @@
+{
+  "name": "@maa/pipeline",
+  "main": "src/index.ts",
+  "devDependencies": {
+    "@techstark/opencv-js": "^4.8.0-release.4",
+    "@tsconfig/node18": "^18.2.1",
+    "@types/node": "^18.17.12",
+    "typescript": "^5.2.2"
+  }
+}

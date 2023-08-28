@@ -1,5 +1,3 @@
-import cv from '@techstark/opencv-js'
-
 import { call_command, call_command_socket } from '..'
 import {
   type InputType,

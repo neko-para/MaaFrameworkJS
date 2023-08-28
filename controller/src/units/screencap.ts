@@ -1,7 +1,7 @@
+import { decodeRaw, fromPng } from '@maa/opencv'
 import zlib from 'zlib'
 
 import { AdbController } from '..'
-import { decodeRaw, fromPng } from '../..'
 
 export function getRawByNetcat(ctrl: AdbController) {
   let cacheAddr: string | null = null
