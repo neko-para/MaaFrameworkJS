@@ -1,5 +1,4 @@
 import { decodeRaw, fromPng, toPng, waitInited } from '@maa/opencv'
-import cv from '@techstark/opencv-js'
 import { readFileSync, writeFileSync } from 'fs'
 
 import { AdbController, call_command, call_command_socket } from '..'

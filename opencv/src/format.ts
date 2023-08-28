@@ -1,4 +1,4 @@
-import cv from '@techstark/opencv-js'
+import cv from '@nekosu/opencv-ts'
 import Jimp from 'jimp'
 
 export async function toPng(mat: cv.Mat): Promise<null | Buffer> {

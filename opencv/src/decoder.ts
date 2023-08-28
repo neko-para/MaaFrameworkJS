@@ -1,4 +1,4 @@
-import cv from '@techstark/opencv-js'
+import cv from '@nekosu/opencv-ts'
 
 export function decodeRaw(buffer: Buffer) {
   if (buffer.length < 8) {

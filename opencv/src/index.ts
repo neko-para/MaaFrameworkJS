@@ -1,4 +1,4 @@
-import cv from '@techstark/opencv-js'
+import cv from '@nekosu/opencv-ts'
 
 export * from './decoder'
 export * from './format'

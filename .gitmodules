@@ -1,0 +1,3 @@
+[submodule "opencv-ts"]
+	path = opencv-ts
+	url = https://github.com/neko-para/opencv-ts

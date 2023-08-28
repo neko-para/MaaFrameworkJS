@@ -9,8 +9,10 @@ async function main() {
   await waitInited()
 
   const ctrl = new AdbController(
-    '/usr/local/bin/adb',
-    '127.0.0.1:62001',
+    // '/usr/local/bin/adb',
+    'E:/Programs/MAA/adb/platform-tools/adb.exe',
+    // '127.0.0.1:62001',
+    '127.0.0.1:16384',
     'RawWithGZip',
     'adb'
   )
@@ -18,6 +20,7 @@ async function main() {
     ctrl.actions,
     path.resolve(process.cwd(), 'resource')
   )
+  await inst.ctrl.connect()
   inst.loadJson(JSON.parse(await fs.readFile('resource/1.json', 'utf-8')))
   await inst.runTask('Awake')
 }

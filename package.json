@@ -3,6 +3,7 @@
   "workspaces": [
     "controller",
     "opencv",
+    "opencv-ts",
     "pipeline"
   ],
   "devDependencies": {

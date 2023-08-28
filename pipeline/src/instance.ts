@@ -1,6 +1,6 @@
 import { type Controller } from '@maa/controller'
 import { fromPng } from '@maa/opencv'
-import cv from '@techstark/opencv-js'
+import cv from '@nekosu/opencv-ts'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -85,6 +85,7 @@ export class MaaInstance {
               task.method ?? cv.TM_CCOEFF_NORMED,
               new cv.Mat()
             )
+
             if (!res.empty()) {
               return [true, roi]
             }
