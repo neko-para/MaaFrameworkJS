@@ -1,8 +1,15 @@
 {
-  "Awake": {
+  "GameStart": {
     "recognition": "TemplateMatch",
     "roi": [550, 600, 200, 120],
     "template": "GameStart.png",
+    "action": "Click",
+    "next": "StartToWakeUp"
+  },
+  "StartToWakeUp": {
+    "recognition": "TemplateMatch",
+    "roi": [520, 460, 240, 100],
+    "template": "StartToWakeUp.png",
     "action": "Click"
   }
 }

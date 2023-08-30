@@ -1,9 +1,9 @@
-import { AdbController } from '..'
+import { AdbController, ControllerData } from '..'
 
 export function getAdbClick(ctrl: AdbController) {
   return {
-    click: async (x: number, y: number) => {
-      return !!(await ctrl.shell(`input tap ${x} ${y}`))
+    async click(this: ControllerData, x: number, y: number) {
+      return !!(await ctrl.shell(`input tap ${x / this.scale} ${y / this.scale}`))
     }
   }
 }
@@ -13,20 +13,20 @@ export function getAdbSwipe(ctrl: AdbController) {
   let downX: number
   let downY: number
   return {
-    swipeDown: async (x: number, y: number) => {
+    async swipeDown(this: ControllerData, x: number, y: number) {
       down = true
-      downX = x
-      downY = y
+      downX = x / this.scale
+      downY = y / this.scale
       return true
     },
-    swipeUp: async (x: number, y: number, dur: number) => {
+    async swipeUp(this: ControllerData, x: number, y: number, dur: number) {
       if (!down) {
         return
       }
       const ox = downX
       const oy = downY
       down = false
-      return !!(await ctrl.shell(`input swipe ${ox} ${oy} ${x} ${y} ${dur}`))
+      return !!(await ctrl.shell(`input swipe ${ox} ${oy} ${x / this.scale} ${y / this.scale} ${dur}`))
     }
   }
 }

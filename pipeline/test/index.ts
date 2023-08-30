@@ -14,15 +14,19 @@ async function main() {
     '127.0.0.1:62001',
     // '127.0.0.1:16384',
     'RawWithGZip',
-    'adb'
+    'adb',
+    {
+      width: 1280
+    }
   )
+  await ctrl.init()
+  console.log(ctrl.actions.scale)
   const inst = new MaaInstance(ctrl.actions, path.resolve(process.cwd(), 'resource'))
-  await inst.ctrl.connect()
   const data = JSON.parse(await fs.readFile('resource/1.json', 'utf-8')) as Record<string, JsonTask>
   for (const name in data) {
     inst.loadJson(name, data[name])
   }
-  await inst.runJsonTask(['Awake'])
+  await inst.runJsonTask(['GameStart'])
 }
 
 main()

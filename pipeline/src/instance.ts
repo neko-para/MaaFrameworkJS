@@ -9,8 +9,10 @@ import { Actor, JsonTask, Param, Recognizer, Rect } from '.'
 const defaultThreshold = 0.7
 const defaultTimeout = 20 * 1000
 
-function matchForScore(image: cv.Mat, templ: cv.Mat): [success: boolean, score: number] {
-  return [false, 0]
+function sleep(ms: number) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
 }
 
 export class MaaInstance {
@@ -63,21 +65,18 @@ export class MaaInstance {
     if (!img) {
       return null
     }
-    const img_1280 = new cv.Mat()
-    cv.resize(img, img_1280, new cv.Size(1280, 720))
-    img.delete()
     for (const target of targets) {
       if (!(target in this.recs)) {
         continue
       }
       const reco = this.recs[target]
-      const res = await reco.recognize(img_1280, this.ctrl, param)
+      const res = await reco.recognize(img, this.ctrl, param)
       if (res) {
-        img_1280.delete()
+        img.delete()
         return [target, res]
       }
     }
-    img_1280.delete()
+    img.delete()
     return null
   }
 
@@ -89,10 +88,11 @@ export class MaaInstance {
   }
 
   loadJson(name: string, task: JsonTask) {
-    this.loadJsonReco(name, task)
+    this.loadJsonRec(name, task)
+    this.loadJsonAct(name, task)
   }
 
-  loadJsonReco(name: string, task: JsonTask) {
+  loadJsonRec(name: string, task: JsonTask) {
     if (!task.recognition || task.recognition === 'DirectHit') {
       this.registerRecognizer(name, {
         recognize: async (image, ctrl, param) => {
@@ -123,7 +123,6 @@ export class MaaInstance {
             }
             const res = new cv.Mat()
             const part = rois ? image.roi(new cv.Rect(...rois[idx])) : image
-            console.log(image.type(), part.type(), templMat.type())
             cv.matchTemplate(part, templMat, res, task.method ?? cv.TM_CCOEFF_NORMED, new cv.Mat())
             if (rois) {
               part.delete()
@@ -139,12 +138,7 @@ export class MaaInstance {
             if (maxVal >= thres[idx]) {
               const r = rois?.[idx] ?? [0, 0]
               return {
-                roi: {
-                  x: maxLoc.x + r[0],
-                  y: maxLoc.y + r[1],
-                  width: templMat.cols,
-                  height: templMat.rows
-                }
+                roi: [maxLoc.x + r[0], maxLoc.y + r[1], templMat.cols, templMat.rows]
               }
             }
           }
@@ -155,12 +149,59 @@ export class MaaInstance {
     return true
   }
 
-  async runJsonTask(names: string[]) {
-    const res = await this.callRecognize(names)
-    if (!res) {
-      return null
+  loadJsonAct(name: string, task: JsonTask) {
+    const pre_delay = task.pre_delay ?? 200
+    const post_delay = task.post_delay ?? 500
+    const doAct = (
+      act: (ctrl: Controller, param?: Param) => Promise<null | ['next' | 'timeout_next' | 'runout_next', Param]>
+    ) => {
+      this.registerActor(name, {
+        action: async (ctrl, param) => {
+          await sleep(pre_delay)
+          const nxt = await act(ctrl, param)
+          if (!nxt) {
+            return null
+          }
+          const res = this.navigateJson(task, nxt[0], nxt[1])
+          await sleep(post_delay)
+          return res
+        }
+      })
     }
-    console.log(res)
-    return await this.callAction(res[0], res[1])
+
+    if (!task.action || task.action === 'DoNothing') {
+      doAct(async () => null)
+    } else if (task.action === 'Click') {
+      const target = task.target ?? true
+      if (target === true) {
+        doAct(async (ctrl, param) => {
+          if (!param?.roi) {
+            return null
+          }
+          const roi = param.roi as Rect
+          console.log(roi, roi[0] + roi[2] / 2, roi[1] + roi[3] / 2)
+          await ctrl.click(roi[0] + roi[2] / 2, roi[1] + roi[3] / 2)
+          return ['next', {}]
+        })
+      }
+    }
+  }
+
+  async navigateJson(task: JsonTask, type: 'next' | 'timeout_next' | 'runout_next' = 'next', param: Param = {}) {
+    const next = task[type]
+    if (next) {
+      return this.runJsonTask(next instanceof Array ? next : [next], param)
+    } else {
+      return param
+    }
+  }
+
+  async runJsonTask(names: string[], param?: Param) {
+    while (true) {
+      const res = await this.callRecognize(names, param)
+      if (res) {
+        return await this.callAction(res[0], res[1])
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { AdbController } from '..'
+import { AdbController, ControllerData } from '..'
 
 export function getConnection(ctrl: AdbController) {
   return {
@@ -26,14 +26,16 @@ export function getActivity(ctrl: AdbController) {
 
 export function getDeviceInfo(ctrl: AdbController) {
   return {
-    getUUID: async () => {
+    async getUUID(this: ControllerData) {
       const res = await ctrl.shell('settings get secure android_id')
-      return res?.trim() ?? null
+      const uuid = res?.trim() ?? null
+      if (uuid) {
+        this.uuid = uuid
+      }
+      return uuid
     },
-    getResolution: async () => {
-      const res = await ctrl.shell(
-        'dumpsys window displays | grep -o -E cur=+[^\\ ]+ | grep -o -E [0-9]+'
-      )
+    async getResolution(this: ControllerData) {
+      const res = await ctrl.shell('dumpsys window displays | grep -o -E cur=+[^\\ ]+ | grep -o -E [0-9]+')
       if (!res) {
         return null
       }
@@ -44,20 +46,29 @@ export function getDeviceInfo(ctrl: AdbController) {
       if (resStr.length !== 2) {
         return null
       }
-      return resStr.map(x => parseInt(x)) as [number, number]
+      const reso = resStr.map(x => parseInt(x)) as [number, number]
+      this.resolution = {
+        width: reso[0],
+        height: reso[1]
+      }
+      if (this.size.width) {
+        this.scale = this.size.width / reso[0]
+      } else if (this.size.height) {
+        this.scale = this.size.height / reso[1]
+      }
+      return reso
     },
-    getOrientation: async () => {
-      const res = await ctrl.shell(
-        'dumpsys input | grep SurfaceOrientation | grep -m 1 -o -E [0-9]'
-      )
+    async getOrientation(this: ControllerData) {
+      const res = await ctrl.shell('dumpsys input | grep SurfaceOrientation | grep -m 1 -o -E [0-9]')
       if (!res) {
         return null
       }
-      const ori = parseInt(res.trim())
+      const ori = parseInt(res.trim()) as 0 | 1 | 2 | 3
       if (ori < 0 || ori > 3) {
         return null
       }
-      return ori as 0 | 1 | 2 | 3
+      this.orientation = ori
+      return ori
     }
   }
 }
