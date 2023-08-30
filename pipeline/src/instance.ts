@@ -190,13 +190,13 @@ export class MaaInstance {
   async navigateJson(task: JsonTask, type: 'next' | 'timeout_next' | 'runout_next' = 'next', param: Param = {}) {
     const next = task[type]
     if (next) {
-      return this.runJsonTask(next instanceof Array ? next : [next], param)
+      return this.runTask(next instanceof Array ? next : [next], param)
     } else {
       return param
     }
   }
 
-  async runJsonTask(names: string[], param?: Param) {
+  async runTask(names: string[], param?: Param) {
     while (true) {
       const res = await this.callRecognize(names, param)
       if (res) {

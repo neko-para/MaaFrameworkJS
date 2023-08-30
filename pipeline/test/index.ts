@@ -26,7 +26,7 @@ async function main() {
   for (const name in data) {
     inst.loadJson(name, data[name])
   }
-  await inst.runJsonTask(['GameStart'])
+  await inst.runTask(['GameStart'])
 }
 
 main()
