@@ -1,5 +1,8 @@
-export type Rect = [number, number, number, number]
-export type TextRepl = [string, string]
+import { Controller } from '@maa/controller'
+import cv from '@nekosu/opencv-ts'
+
+export type Rect = [x: number, y: number, width: number, height: number]
+export type TextRepl = [from: string, to: string]
 
 type DirectHit = {
   recognition?: 'DirectHit'
@@ -88,7 +91,11 @@ export type JsonTask = Recognition &
     notify?: boolean
   }
 
-export type Task = {
-  type: 'json'
-  task: JsonTask
+export type Param = Record<string, unknown>
+export interface Recognizer {
+  recognize: (image: cv.Mat, ctrl: Controller, param?: Param) => Promise<null | Param>
+}
+
+export interface Actor {
+  action: (ctrl: Controller, param?: Param) => Promise<null | Param>
 }
