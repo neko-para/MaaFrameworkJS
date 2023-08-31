@@ -1,7 +1,7 @@
 import { fromPng, resize, toPng, waitInited } from '@maa/opencv'
 import cv from '@nekosu/opencv-ts'
 import fs from 'fs/promises'
-import { InferenceSession, Tensor, TensorConstructor } from 'onnxruntime-node'
+import { InferenceSession, Tensor } from 'onnxruntime-node'
 
 async function main() {
   await waitInited()
@@ -10,34 +10,22 @@ async function main() {
   if (!img) {
     return
   }
-  // const resized = resize(img, {
-  //   height: 48
-  // })
-  // img.delete()
-  const resized = img
-  if (!resized) {
-    return
-  }
-  const height = resized.rows
-  const width = resized.cols
+  const fimg = new cv.Mat()
+  img.convertTo(fimg, cv.CV_32FC3, 1 / 255.0)
+  img.delete()
+  const height = fimg.rows
+  const width = fimg.cols
   const pixs = width * height
-  let rs: number[] = []
-  let gs: number[] = []
-  let bs: number[] = []
-  for (let i = 0; i < pixs; i++) {
-    const r = resized.data[i * 4] / 255.0
-    const g = resized.data[i * 4 + 1] / 255.0
-    const b = resized.data[i * 4 + 2] / 255.0
-    rs.push(r)
-    gs.push(g)
-    bs.push(b)
-  }
-  const arr = new Float32Array(width * height * 3)
-  const data = [...rs, ...gs, ...bs]
-  for (let i = 0; i < pixs * 3; i++) {
-    arr[i] = data[i]
-  }
-  const ts = new Tensor('float32', arr, [1, 3, height, width])
+
+  const c_hw = new cv.Mat(pixs, 4, cv.CV_32FC1)
+  c_hw.data32F.set(fimg.data32F)
+  const hw_c = new cv.Mat()
+  cv.transpose(c_hw, hw_c)
+  c_hw.delete()
+  const transposeBasedData = hw_c.data32F.slice(pixs, pixs * 4)
+  hw_c.delete()
+
+  const ts = new Tensor('float32', transposeBasedData, [1, 3, height, width])
   const is = await InferenceSession.create(await fs.readFile('model/det.onnx'))
   const feeds: Record<string, Tensor> = {}
   feeds[is.inputNames[0]] = ts

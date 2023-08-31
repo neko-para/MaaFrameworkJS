@@ -1,11 +1,11 @@
 import cv from '@nekosu/opencv-ts'
 import Jimp from 'jimp'
 
-export async function toPng(mat: cv.Mat): Promise<null | Buffer> {
-  const w = mat.cols
-  const h = mat.rows
+export async function toPng(mat: cv.Mat, ow?: number, oh?: number, ot?: number): Promise<null | Buffer> {
+  const w = ow ?? mat.cols
+  const h = oh ?? mat.rows
   let data: Uint8Array
-  switch (mat.type()) {
+  switch (ot ?? mat.type()) {
     case cv.CV_8UC4:
       data = mat.data
       break
@@ -63,15 +63,17 @@ export async function toPng(mat: cv.Mat): Promise<null | Buffer> {
     }
 
     default:
+      console.log(ot ?? mat.type())
       return null
   }
   return new Promise(resolve => {
     new Jimp({
-      width: mat.cols,
-      height: mat.rows,
+      width: w,
+      height: h,
       data: Buffer.from(data)
     }).getBuffer(Jimp.MIME_PNG, (err, buffer) => {
       if (err) {
+        console.log(err)
         resolve(null)
       } else {
         resolve(buffer)
