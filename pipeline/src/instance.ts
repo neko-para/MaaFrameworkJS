@@ -123,14 +123,24 @@ export class MaaInstance {
             }
             const res = new cv.Mat()
             const part = rois ? image.roi(new cv.Rect(...rois[idx])) : image
-            cv.matchTemplate(part, templMat, res, task.method ?? cv.TM_CCOEFF_NORMED, new cv.Mat())
+            let mask = cv.Mat.ones(part.size(), cv.CV_8UC1)
+            if (task.green_mask) {
+              const tempMat = new cv.Mat()
+              cv.inRange(templMat, new cv.Scalar(0, 255, 0), new cv.Scalar(0, 255, 0), tempMat)
+              cv.bitwise_not(tempMat, mask)
+              tempMat.delete()
+            }
+            cv.matchTemplate(part, templMat, res, task.method ?? cv.TM_CCOEFF_NORMED, mask)
+            mask.delete()
             if (rois) {
               part.delete()
             }
             if (res.empty()) {
+              res.delete()
               continue
             }
             const { maxVal, maxLoc } = cv.minMaxLoc(res)
+            res.delete()
             if (isNaN(maxVal) || !isFinite(maxVal)) {
               continue
             }

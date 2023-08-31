@@ -22,12 +22,9 @@ import { AdbController, call_command, call_command_socket } from '..'
 async function main() {
   await waitInited()
 
-  const adb = new AdbController(
-    '/usr/local/bin/adb',
-    '127.0.0.1:62001',
-    'Encode',
-    'adb'
-  )
+  const adb = new AdbController('/usr/local/bin/adb', '127.0.0.1:62001', 'Encode', 'adb', {
+    width: 1280
+  })
   if (!(await adb.actions.connect())) {
     console.log('connect failed')
     return
