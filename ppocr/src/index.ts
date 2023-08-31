@@ -1,4 +1,4 @@
-import { fromPng, resize, waitInited } from '@maa/opencv'
+import { fromPng, resize, toPng, waitInited } from '@maa/opencv'
 import cv from '@nekosu/opencv-ts'
 import fs from 'fs/promises'
 import { InferenceSession, Tensor, TensorConstructor } from 'onnxruntime-node'
@@ -6,7 +6,7 @@ import { InferenceSession, Tensor, TensorConstructor } from 'onnxruntime-node'
 async function main() {
   await waitInited()
 
-  const img = await fromPng(await fs.readFile('1.png'))
+  const img = await fromPng(await fs.readFile('2.png'))
   if (!img) {
     return
   }
@@ -41,8 +41,17 @@ async function main() {
   const is = await InferenceSession.create(await fs.readFile('model/det.onnx'))
   const feeds: Record<string, Tensor> = {}
   feeds[is.inputNames[0]] = ts
-  const out = await is.run(feeds)
-  console.log(out)
+  const outputs = await is.run(feeds)
+  const output = outputs[is.outputNames[0]]
+  const outputArray = output.data as Float32Array
+  const outputMat = new cv.Mat(height, width, cv.CV_32FC1)
+  outputMat.data32F.set(outputArray)
+  const outBuf = await toPng(outputMat)
+  if (!outBuf) {
+    console.log('err!')
+    return
+  }
+  await fs.writeFile('test.png', outBuf)
 }
 
 main()
