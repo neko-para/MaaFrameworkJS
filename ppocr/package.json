@@ -1,0 +1,10 @@
+{
+  "name": "@maa/ppocr",
+  "main": "src/index.ts",
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.1",
+    "@types/node": "^18.17.12",
+    "onnxruntime-node": "^1.15.1",
+    "typescript": "^5.2.2"
+  }
+}

@@ -4,7 +4,8 @@
     "controller",
     "opencv",
     "opencv-ts",
-    "pipeline"
+    "pipeline",
+    "ppocr"
   ],
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.2.0",
