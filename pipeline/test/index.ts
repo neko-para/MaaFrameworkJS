@@ -1,5 +1,7 @@
 import { AdbController } from '@maa/controller'
 import { waitInited } from '@maa/opencv'
+import { PPOCR } from '@maa/ppocr'
+import cv from '@nekosu/opencv-ts'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -22,6 +24,7 @@ async function main() {
   await ctrl.init()
   console.log(ctrl.actions.scale)
   const inst = new MaaInstance(ctrl.actions, path.resolve(process.cwd(), 'resource'))
+  inst.ppocr = await PPOCR.create('ppocr/model/det.onnx', 'ppocr/model/rec.onnx', 'ppocr/model/keys.txt')
   const data = JSON.parse(await fs.readFile('resource/1.json', 'utf-8')) as Record<string, JsonTask>
   for (const name in data) {
     inst.loadJson(name, data[name])
@@ -29,4 +32,8 @@ async function main() {
   await inst.runTask(['GameStart'])
 }
 
-main()
+main().catch(err => {
+  const { code, msg } = cv.exceptionFromPtr(err as number)
+  console.log(msg)
+  process.exit(code)
+})

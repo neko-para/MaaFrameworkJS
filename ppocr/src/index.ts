@@ -69,11 +69,11 @@ export class PPOCR {
     return result
   }
 
-  async rec(takeImg: cv.Mat) {
+  async rec(takeImg: cv.Mat): Promise<[score: number, text: string][]> {
     const recRes = await this.recognizer.recognize(takeImg)
     if (!recRes) {
-      return null
+      return []
     }
-    return [recRes[0], recRes[1]]
+    return [[recRes[0], recRes[1]]]
   }
 }

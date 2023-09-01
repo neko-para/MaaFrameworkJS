@@ -1,10 +1,11 @@
 import { type Controller } from '@maa/controller'
 import { fromPng } from '@maa/opencv'
+import { PPOCR } from '@maa/ppocr'
 import cv from '@nekosu/opencv-ts'
 import fs from 'fs/promises'
 import path from 'path'
 
-import { Actor, JsonTask, Param, Recognizer, Rect } from '.'
+import { Actor, JsonTask, Param, Recognizer, Rect, TextRepl } from '.'
 
 const defaultThreshold = 0.7
 const defaultTimeout = 20 * 1000
@@ -19,6 +20,7 @@ export class MaaInstance {
   ctrl: Controller
   root: string
   templCache: Record<string, null | cv.Mat>
+  ppocr: PPOCR | null
   recs: Record<string, Recognizer>
   acts: Record<string, Actor>
 
@@ -26,6 +28,7 @@ export class MaaInstance {
     this.ctrl = ctrl
     this.root = root
     this.templCache = {}
+    this.ppocr = null
     this.recs = {}
     this.acts = {}
   }
@@ -111,7 +114,7 @@ export class MaaInstance {
           ? (task.roi as Rect[])
           : Array.from({ length: templs.length }, () => task.roi as Rect)
         : null
-      if (templs.length !== thres.length || (rois && templs.length !== rois.length)) {
+      if (templs.length !== thres.length) {
         return false
       }
       this.registerRecognizer(name, {
@@ -121,35 +124,119 @@ export class MaaInstance {
             if (!templMat) {
               continue
             }
-            const res = new cv.Mat()
-            const part = rois ? image.roi(new cv.Rect(...rois[idx])) : image
-            let mask = cv.Mat.ones(part.size(), cv.CV_8UC1)
+            let mask = cv.Mat.ones(templMat.size(), cv.CV_8UC1)
             if (task.green_mask) {
               const tempMat = new cv.Mat()
               cv.inRange(templMat, [0, 255, 0, 0], [0, 255, 0, 0], tempMat)
               cv.bitwise_not(tempMat, mask)
               tempMat.delete()
             }
-            cv.matchTemplate(part, templMat, res, task.method ?? cv.TM_CCOEFF_NORMED, mask)
-            mask.delete()
-            if (rois) {
-              part.delete()
-            }
-            if (res.empty()) {
-              res.delete()
-              continue
-            }
-            const { maxVal, maxLoc } = cv.minMaxLoc(res)
-            res.delete()
-            if (isNaN(maxVal) || !isFinite(maxVal)) {
-              continue
-            }
-            console.log(maxVal, maxLoc)
-            if (maxVal >= thres[idx]) {
-              const r = rois?.[idx] ?? [0, 0]
-              return {
-                roi: [maxLoc.x + r[0], maxLoc.y + r[1], templMat.cols, templMat.rows]
+            const proc = (img: cv.Mat, roi?: [number, number, number, number]) => {
+              const res = new cv.Mat()
+              cv.matchTemplate(img, templMat, res, task.method ?? cv.TM_CCOEFF_NORMED, mask)
+              if (res.empty()) {
+                res.delete()
+                return null
               }
+              const { maxVal, maxLoc } = cv.minMaxLoc(res)
+              res.delete()
+              if (isNaN(maxVal) || !isFinite(maxVal)) {
+                return null
+              }
+              if (maxVal >= thres[idx]) {
+                const r = roi ?? [0, 0]
+                return {
+                  roi: [maxLoc.x + r[0], maxLoc.y + r[1], templMat.cols, templMat.rows]
+                }
+              }
+            }
+            if (rois) {
+              for (const roi of rois) {
+                const part = image.roi(new cv.Rect(...roi))
+                const res = proc(part, roi)
+                part.delete()
+                if (res) {
+                  mask.delete()
+                  return res
+                }
+              }
+            } else {
+              const res = proc(image)
+              if (res) {
+                mask.delete()
+                return res
+              }
+            }
+            mask.delete()
+          }
+          return null
+        }
+      })
+    } else if (task.recognition === 'OCR') {
+      const texts = typeof task.text === 'string' ? [task.text] : task.text
+      const repls = task.replace
+        ? task.replace.length === 0 || task.replace[0] instanceof Array
+          ? (task.replace as TextRepl[])
+          : [task.replace as TextRepl]
+        : []
+      const regexs: RegExp[] = []
+      const replRegexs: [RegExp, string][] = []
+      for (const text of texts) {
+        try {
+          regexs.push(new RegExp(text))
+        } catch (_err) {}
+      }
+      for (const repl of repls) {
+        try {
+          replRegexs.push([new RegExp(repl[0]), repl[1]])
+        } catch (_err) {}
+      }
+      const performTrimReplace = (text: string) => {
+        text = text.trim()
+        for (const [reg, txt] of replRegexs) {
+          text = text.replaceAll(reg, txt)
+        }
+        return text
+      }
+      const rois = task.roi
+        ? task.roi.length === 0 || task.roi[0] instanceof Array
+          ? (task.roi as Rect[])
+          : Array.from({ length: texts.length }, () => task.roi as Rect)
+        : null
+      const recMethod = task.only_rec ? 'rec' : 'det_rec'
+      this.registerRecognizer(name, {
+        recognize: async (image, ctrl, param) => {
+          const proc = async (img: cv.Mat, roi?: [number, number, number, number]) => {
+            const res = ((await this.ppocr?.[recMethod](img)) ?? []).filter(([score, str]) => {
+              str = performTrimReplace(str)
+              for (const reg of regexs) {
+                if (reg.test(str)) {
+                  return true
+                }
+              }
+              return false
+            })
+            if (res.length) {
+              return {
+                ocr: res.sort((x, y) => y[0] - x[0])
+              }
+            } else {
+              return null
+            }
+          }
+          if (rois) {
+            for (const roi of rois) {
+              const part = image.roi(new cv.Rect(...roi))
+              const res = proc(part, roi)
+              part.delete()
+              if (res) {
+                return res
+              }
+            }
+          } else {
+            const res = proc(image)
+            if (res) {
+              return res
             }
           }
           return null
