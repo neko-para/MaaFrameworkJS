@@ -89,3 +89,21 @@ export function getCHW(mat: cv.Mat) {
   hw_c.delete()
   return result
 }
+
+export function boxPoints(rec: cv.RotatedRect): [number, number][] {
+  const angle = ((90 - rec.angle) / 180) * Math.PI
+  const ra = Math.atan2(rec.size.width, rec.size.height)
+  const dis = Math.hypot(rec.size.width, rec.size.height) / 2
+  const tl = angle + ra
+  const tr = angle - ra
+  const lx = dis * Math.cos(tl)
+  const ly = dis * Math.sin(tl)
+  const rx = dis * Math.cos(tr)
+  const ry = dis * Math.sin(tr)
+  return [
+    [rec.center.x + lx, rec.center.y + ly],
+    [rec.center.x + rx, rec.center.y + ry],
+    [rec.center.x - lx, rec.center.y - ly],
+    [rec.center.x - rx, rec.center.y - ry]
+  ]
+}
