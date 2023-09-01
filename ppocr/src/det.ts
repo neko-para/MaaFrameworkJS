@@ -116,16 +116,18 @@ export class PPOCRDetector {
 
       // TODO: fast deploy的这里有一个unclip操作, 不知道在干什么, 查到的应该是扩大unclip_ratio, 这里直接选择扩大arr了
       // const boxPoly = cv.matFromArray(oldArr.length, 1, cv.CV_32FC2, oldArr.flat())
-      const area = cv.contourArea(contour)
-      const len = cv.arcLength(contour, true)
-      const ratio = (area / len) * unclip_ratio
-      // boxPoly.delete()
+
+      // const area = cv.contourArea(contour)
+      // const len = cv.arcLength(contour, true)
+      // const ratio = (area / len) * unclip_ratio
       contour.delete()
+      let dw = 32
+      let dh = 32
       const [newssid, arr] = this.getMiniBoxes({
         center: box.center,
         size: {
-          width: box.size.width * ratio,
-          height: box.size.height * ratio
+          width: box.size.width + dw,
+          height: box.size.height + dh
         },
         angle: box.angle
       })

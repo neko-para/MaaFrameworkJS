@@ -6,57 +6,74 @@ import { InferenceSession, Tensor } from 'onnxruntime-node'
 import { PPOCRDetector } from './det'
 import { PPOCRRecognizer } from './rec'
 
-async function main() {
-  await waitInited()
+export class PPOCR {
+  detector: PPOCRDetector
+  recognizer: PPOCRRecognizer
 
-  const img = await fromPng(await fs.readFile('1.png'))
-  if (!img) {
-    return
+  static async create(det: string, rec: string, key: string) {
+    const detector = await PPOCRDetector.create(await fs.readFile(det))
+    const recognizer = await PPOCRRecognizer.create(
+      await fs.readFile(rec),
+      (await fs.readFile(key, 'utf-8')).split('\n')
+    )
+    return new PPOCR(detector, recognizer)
   }
-  const detector = await PPOCRDetector.create(await fs.readFile('model/det.onnx'))
-  const recognizer = await PPOCRRecognizer.create(await fs.readFile('model/rec.onnx'))
-  const keyMapper = (await fs.readFile('model/keys.txt', 'utf-8')).split('\n')
-  const result = await detector.detect(img.clone())
-  if (!result) {
-    return
+
+  constructor(det: PPOCRDetector, rec: PPOCRRecognizer) {
+    this.detector = det
+    this.recognizer = rec
   }
-  if (true) {
-    const draw = img.clone()
-    const mv = new cv.MatVector()
-    for (const res of result) {
-      const m = cv.matFromArray(res.length, 1, cv.CV_32SC2, res.flat(1))
-      mv.push_back(m)
-      m.delete()
+
+  async det_rec(img: cv.Mat) {
+    const result: [score: number, text: string][] = []
+    const detRes = await this.detector.detect(img.clone())
+    if (!detRes) {
+      return []
     }
-    cv.polylines(draw, mv, true, [255, 0, 0, 255])
-    mv.delete()
-    const outBuf = await toPng(draw)
-    if (!outBuf) {
-      console.log('err!')
-      return
+    // if (true) {
+    //   const draw = img.clone()
+    //   const mv = new cv.MatVector()
+    //   for (const res of result) {
+    //     const m = cv.matFromArray(res.length, 1, cv.CV_32SC2, res.flat(1))
+    //     mv.push_back(m)
+    //     m.delete()
+    //   }
+    //   cv.polylines(draw, mv, true, [255, 0, 0, 255])
+    //   mv.delete()
+    //   const outBuf = await toPng(draw)
+    //   if (!outBuf) {
+    //     console.log('err!')
+    //     return
+    //   }
+    //   await fs.writeFile('test.png', outBuf)
+    //   draw.delete()
+    // }
+    for (const res of detRes) {
+      // todo: allow rotated rect
+      const xmin = Math.min(...res.map(x => x[0]))
+      const xmax = Math.max(...res.map(x => x[0]))
+      const ymin = Math.min(...res.map(x => x[1]))
+      const ymax = Math.max(...res.map(x => x[1]))
+      const part = img.roi({
+        x: xmin,
+        y: ymin,
+        width: xmax - xmin + 1,
+        height: ymax - ymin + 1
+      })
+      const recRes = await this.recognizer.recognize(part)
+      if (!recRes) {
+        return []
+      }
+      result.push([recRes[0], recRes[1]])
     }
-    await fs.writeFile('test.png', outBuf)
-    draw.delete()
+    return result
   }
-  for (const res of result) {
-    // todo: allow rotated rect
-    const xmin = Math.min(...res.map(x => x[0]))
-    const xmax = Math.max(...res.map(x => x[0]))
-    const ymin = Math.min(...res.map(x => x[1]))
-    const ymax = Math.max(...res.map(x => x[1]))
-    const part = img.roi({
-      x: xmin,
-      y: ymin,
-      width: xmax - xmin + 1,
-      height: ymax - ymin + 1
-    })
-    const recRes = await recognizer.recognize(part)
+
+  async rec(takeImg: cv.Mat) {
+    const recRes = await this.recognizer.recognize(takeImg)
     if (!recRes) {
-      return
+      return null
     }
-    console.log(recRes[0], recRes[1].map(x => keyMapper[x - 1]).join(''))
+    return [recRes[0], recRes[1]]
   }
-  img.delete()
 }
-
-main()

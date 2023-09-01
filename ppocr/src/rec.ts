@@ -18,13 +18,15 @@ function clamp(val: number, min: number, max: number) {
 }
 export class PPOCRRecognizer {
   session: InferenceSession
+  mapper: string[]
 
-  static async create(model: Buffer): Promise<PPOCRRecognizer> {
-    return new PPOCRRecognizer(await InferenceSession.create(model))
+  static async create(model: Buffer, map: string[]): Promise<PPOCRRecognizer> {
+    return new PPOCRRecognizer(await InferenceSession.create(model), map)
   }
 
-  constructor(ss: InferenceSession) {
+  constructor(ss: InferenceSession, map: string[]) {
     this.session = ss
+    this.mapper = map
   }
 
   preprocess(takeInput: cv.Mat): Tensor | null {
@@ -47,22 +49,27 @@ export class PPOCRRecognizer {
     return tensor
   }
 
-  postprocess(tensor: Tensor): [number, number[]] {
+  postprocess(tensor: Tensor): [number, string, number[]] {
     const count = tensor.dims[1]
     const mat = new cv.Mat(count, 6625, cv.CV_32FC1)
     mat.data32F.set(tensor.data as Float32Array) // should only one batch
-    const res: number[] = []
+    const res: string[] = []
+    const resV: number[] = []
     let score = 0
     for (let i = 0; i < count; i++) {
       const row = mat.row(i)
       const { maxLoc, maxVal } = cv.minMaxLoc(row)
       if (maxLoc.x > 0) {
+        if (maxVal < 0.95) {
+          continue
+        }
         score += maxVal
-        res.push(maxLoc.x)
+        res.push(this.mapper[maxLoc.x - 1])
+        resV.push(maxVal)
       }
     }
     score /= res.length + 1e-6
-    return [score, res]
+    return [score, res.join(''), resV]
   }
 
   async recognize(input: cv.Mat) {
