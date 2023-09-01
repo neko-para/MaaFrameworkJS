@@ -9,7 +9,7 @@ import { PPOCRRecognizer } from './rec'
 async function main() {
   await waitInited()
 
-  const img = await fromPng(await fs.readFile('4.png'))
+  const img = await fromPng(await fs.readFile('1.png'))
   if (!img) {
     return
   }
@@ -28,7 +28,7 @@ async function main() {
       mv.push_back(m)
       m.delete()
     }
-    cv.polylines(draw, mv, true, new cv.Scalar(255, 0, 0, 255))
+    cv.polylines(draw, mv, true, [255, 0, 0, 255])
     mv.delete()
     const outBuf = await toPng(draw)
     if (!outBuf) {

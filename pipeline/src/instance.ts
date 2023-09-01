@@ -126,7 +126,7 @@ export class MaaInstance {
             let mask = cv.Mat.ones(part.size(), cv.CV_8UC1)
             if (task.green_mask) {
               const tempMat = new cv.Mat()
-              cv.inRange(templMat, new cv.Scalar(0, 255, 0), new cv.Scalar(0, 255, 0), tempMat)
+              cv.inRange(templMat, [0, 255, 0, 0], [0, 255, 0, 0], tempMat)
               cv.bitwise_not(tempMat, mask)
               tempMat.delete()
             }

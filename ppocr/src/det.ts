@@ -76,7 +76,7 @@ export class PPOCRDetector {
     rookMat.data32S.set(rooks)
     const mv = new cv.MatVector()
     mv.push_back(rookMat)
-    cv.fillPoly(mask, mv, new cv.Scalar(1))
+    cv.fillPoly(mask, mv, [1, 0, 0, 0])
     rookMat.delete()
     mv.delete()
     const predRoi = pred.roi({
@@ -121,16 +121,14 @@ export class PPOCRDetector {
       const ratio = (area / len) * unclip_ratio
       // boxPoly.delete()
       contour.delete()
-      const [newssid, arr] = this.getMiniBoxes(
-        new cv.RotatedRect(
-          box.center,
-          {
-            width: box.size.width * ratio,
-            height: box.size.height * ratio
-          },
-          box.angle
-        )
-      )
+      const [newssid, arr] = this.getMiniBoxes({
+        center: box.center,
+        size: {
+          width: box.size.width * ratio,
+          height: box.size.height * ratio
+        },
+        angle: box.angle
+      })
       if (newssid < 3 + 2) {
         continue
       }
