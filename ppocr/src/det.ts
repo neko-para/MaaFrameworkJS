@@ -103,25 +103,30 @@ export class PPOCRDetector {
       }
       const box = cv.minAreaRect(contour)
 
-      const [ssid] = this.getMiniBoxes(box)
+      const [ssid, oldArr] = this.getMiniBoxes(box)
       if (ssid < 3) {
         contour.delete()
         continue
       }
       const score = this.polygonScoreAcc(contour, pred)
-      contour.delete()
+      // contour.delete()
       if (score < box_thresh) {
         continue
       }
 
       // TODO: fast deploy的这里有一个unclip操作, 不知道在干什么, 查到的应该是扩大unclip_ratio, 这里直接选择扩大arr了
-      console.log(box.size.height)
+      // const boxPoly = cv.matFromArray(oldArr.length, 1, cv.CV_32FC2, oldArr.flat())
+      const area = cv.contourArea(contour)
+      const len = cv.arcLength(contour, true)
+      const ratio = (area / len) * unclip_ratio
+      // boxPoly.delete()
+      contour.delete()
       const [newssid, arr] = this.getMiniBoxes(
         new cv.RotatedRect(
           box.center,
           {
-            width: box.size.width * unclip_ratio + 24,
-            height: box.size.height * unclip_ratio + 24
+            width: box.size.width * ratio,
+            height: box.size.height * ratio
           },
           box.angle
         )
@@ -132,8 +137,8 @@ export class PPOCRDetector {
       boxes.push(
         arr.map(pt => {
           return [
-            clamp((pt[0] / bitmap.cols) * pred.cols, 0, pred.cols),
-            clamp((pt[1] / bitmap.rows) * pred.rows, 0, pred.rows)
+            clamp((pt[0] / bitmap.cols) * pred.cols, 0, pred.cols - 1),
+            clamp((pt[1] / bitmap.rows) * pred.rows, 0, pred.rows - 1)
           ]
         })
       )
@@ -171,7 +176,7 @@ export class PPOCRDetector {
 
     return this.boxFromBitmap(pred, bitmap).map(arr =>
       arr.map((pt: [number, number]): [number, number] => {
-        return [clamp(Math.round(pt[0] - xoff), 0, ow), clamp(Math.round(pt[1] - yoff), 0, oh)]
+        return [clamp(Math.round(pt[0] - xoff), 0, ow - 1), clamp(Math.round(pt[1] - yoff), 0, oh - 1)]
       })
     )
   }
