@@ -1,3 +1,6 @@
 [submodule "opencv-ts"]
 	path = opencv-ts
 	url = https://github.com/neko-para/opencv-ts
+[submodule "resource/binary"]
+	path = resource/binary
+	url = https://github.com/MaaAssistantArknights/MaaAgentBinary

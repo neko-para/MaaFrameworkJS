@@ -58,4 +58,12 @@ export class AdbController {
   async execOut(cmd: string): Promise<null | Buffer> {
     return call_command(this.adb, ['-s', this.addr, 'exec-out', cmd])
   }
+
+  async pushFile(from: string, to: string): Promise<null | string> {
+    return (await call_command(this.adb, ['-s', this.addr, 'push', from, to]))?.toString('utf-8') ?? null
+  }
+
+  async pullFile(from: string, to: string): Promise<null | string> {
+    return (await call_command(this.adb, ['-s', this.addr, 'pull', from, to]))?.toString('utf-8') ?? null
+  }
 }
